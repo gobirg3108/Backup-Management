@@ -1,4 +1,10 @@
-import { Database, HardDrive, RefreshCcw, Settings } from "lucide-react";
+import {
+  Database,
+  HardDrive,
+  RefreshCcw,
+  Settings,
+  ScrollText,
+} from "lucide-react";
 
 import { Link } from "react-router-dom";
 
@@ -15,7 +21,7 @@ const menuItems = [
   },
   {
     title: "Logs",
-    icon: Database,
+    icon: ScrollText,
     path: "/logs",
   },
   {
@@ -28,7 +34,6 @@ const menuItems = [
 function Layout({ children }) {
   return (
     <div className="flex min-h-screen">
-      
       {/* Sidebar */}
 
       <div className="w-64 bg-black text-white p-5">

@@ -9,7 +9,6 @@ function Dashboard() {
   const [loading, setLoading] = useState(false);
 
   // Fetch Backups
-
   const fetchBackups = async () => {
     try {
       setLoading(true);
@@ -100,7 +99,8 @@ function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className=" bg-white p-5 rounded-2xl shadow-sm">
           <h2 className="text-gray-500">Total Backups</h2>
-          <p className="
+          <p
+            className="
             text-3xl
             font-bold
             mt-3
@@ -134,6 +134,8 @@ function Dashboard() {
 
         {loading ? (
           <p>Loading...</p>
+        ) : backups.length === 0 ? (
+          <p className="text-center text-gray-400 py-10">No backups yet</p>
         ) : (
           <table className="w-full">
             <thead>

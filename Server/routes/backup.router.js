@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
 
 const router = express.Router();
 
@@ -31,7 +31,7 @@ const BACKUP_DB_NAME = process.env.BACKUP_DB_NAME;
 // Create Backup
 router.post("/create", async (req, res) => {
   try {
-    const result = await createMongoBackup();
+    const result = await createMongoBackup("manual");
 
     return res.status(200).json({
       success: true,
@@ -124,7 +124,6 @@ router.post("/restore", upload.single("backup"), async (req, res) => {
     const extractPath = `./restore/extracted-${Date.now()}`;
 
     // Extract ZIP
-
     await fs
       .createReadStream(zipPath)
       .pipe(
@@ -134,14 +133,20 @@ router.post("/restore", upload.single("backup"), async (req, res) => {
       )
       .promise();
 
-    // Find DB Folder
+    // Find DB Folder by exact DB name
+    const dbFolder = path.join(extractPath, BACKUP_DB_NAME);
 
-    const folders = fs.readdirSync(extractPath);
+    if (!fs.existsSync(dbFolder)) {
+      fs.rmSync(zipPath, { force: true });
+      fs.rmSync(extractPath, { recursive: true, force: true });
 
-    const dbFolder = path.join(extractPath, folders[0]);
+      return res.status(400).json({
+        success: false,
+        message: `Invalid backup file — folder "${BACKUP_DB_NAME}" not found inside ZIP`,
+      });
+    }
 
     // Restore MongoDB
-
     exec(
       `mongorestore --drop --db=${BACKUP_DB_NAME} "${dbFolder}"`,
       (error) => {

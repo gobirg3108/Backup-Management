@@ -8,15 +8,21 @@ const client = twilio(
 export const sendWhatsAppMessage = async ({
   status,
   fileName,
+  fileSize,
+  dbName,
   errorMessage,
 }) => {
   try {
     let body = "";
 
     if (status === "success") {
-      body = `*Mongo DB Backup Success* ✅ 
+      body = `✅ *Mongo DB Backup Success*
 
-📁 File: ${fileName}
+📊 Database : ${dbName}
+
+📁 File : ${fileName}
+
+📦 File Size : ${fileSize}
 
 📅 Date & Time : ${new Date().toLocaleString()}
 
@@ -24,11 +30,15 @@ export const sendWhatsAppMessage = async ({
 
 🚀 Mongo Backup Monitoring System`;
     } else {
-      body = ` *Mongo DB Backup Failed* ❌
+      body = `❌ *Mongo DB Backup Failed*
 
-⚠ Error: ${errorMessage}
+📊 Database : ${dbName}
+
+🚫 Error : ${errorMessage}
 
 📅 Date & Time : ${new Date().toLocaleString()}
+
+🔄 Retry System Triggered
 
 🚨 Immediate Attention Required`;
     }

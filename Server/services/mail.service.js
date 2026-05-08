@@ -12,217 +12,260 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendBackupMail = async ({ status, fileName, errorMessage }) => {
+export const sendBackupMail = async ({
+  status,
+  fileName,
+  fileSize,
+  dbName,
+  errorMessage,
+}) => {
   try {
     let subject = "";
     let html = "";
 
     if (status === "success") {
-      subject = "Mongo DB  Backup Completed";
-
-      html = `
-<div style="
-  font-family: Arial;
-  background: #f4f4f4;
-  padding: 30px;
-">
-
-  <div style="
-    max-width: 600px;
-    margin: auto;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-  ">
-
-    <div style="
-      background: #000;
-      color: white;
-      padding: 20px;
-      text-align: center;
-    ">
-
-      <h1>
-        Mongo Backup System
-      </h1>
-
-    </div>
-
-    <div style="padding: 30px;">
-
-      <h2 style="color: green;">
-         Backup Completed
-      </h2>
-
-      <p>
-        Your MongoDB backup
-        completed successfully.
-      </p>
-
-      <table style="
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-      ">
-
-        <tr>
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-          ">
-            Backup File
-          </td>
-
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-          ">
-            ${fileName}
-          </td>
-        </tr>
-
-        <tr>
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-          ">
-            Status
-          </td>
-
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-            color: green;
-          ">
-            Success
-          </td>
-        </tr>
-
-        <tr>
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-          ">
-            Time
-          </td>
-
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-          ">
-            ${new Date().toLocaleString()}
-          </td>
-        </tr>
-
-      </table>
-
-    </div>
-
-    <div style="
-      background: #f5f5f5;
-      padding: 15px;
-      text-align: center;
-      font-size: 12px;
-      color: gray;
-    ">
-
-      Mongo Backup Monitoring System
-
-    </div>
-
-  </div>
-
-</div>
-`;
+      subject = "Mongo Backup Completed ✅";
     } else {
-      subject = "Mongo Backup Failed";
+      subject = "Mongo Backup Failed ❌";
+    }
 
-      html = `
-<div style="
-  font-family: Arial;
-  background: #f4f4f4;
-  padding: 30px;
-">
+    html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <div style="
-    max-width: 600px;
-    margin: auto;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-  ">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-    <div style="
-      background: #dc2626;
-      color: white;
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
       padding: 20px;
+      color: #111827;
+      transition: 0.3s ease;
+    }
+
+    .container {
+      max-width: 650px;
+      margin: auto;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .header-success {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: white;
       text-align: center;
-    ">
+      padding: 25px;
+    }
 
-      <h1>
-        Mongo Backup Failed
-      </h1>
+    .header-failed {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      color: white;
+      text-align: center;
+      padding: 25px;
+    }
 
+    .header-title {
+      font-size: 30px;
+      font-weight: bold;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .table td {
+      border: 1px solid #e5e7eb;
+      padding: 14px;
+      font-size: 16px;
+    }
+
+    .label {
+      font-weight: bold;
+      background: #f9fafb;
+      width: 40%;
+    }
+
+    .success {
+      color: #16a34a;
+      font-weight: bold;
+    }
+
+    .failed {
+      color: #dc2626;
+      font-weight: bold;
+    }
+
+    .footer {
+      background: #f3f4f6;
+      text-align: center;
+      padding: 18px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .alert-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: #fef2f2;
+      border-left: 5px solid #dc2626;
+      color: #991b1b;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    /* MOBILE */
+    @media only screen and (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+
+      .content {
+        padding: 18px;
+      }
+
+      .header-title {
+        font-size: 22px;
+      }
+
+      .table td {
+        font-size: 14px;
+        padding: 10px;
+      }
+
+      .footer {
+        font-size: 12px;
+      }
+    }
+
+    /* DARK MODE */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #111827;
+        color: #f9fafb;
+      }
+
+      .container {
+        background: #1f2937;
+      }
+
+      .table td {
+        border: 1px solid #374151;
+        color: #f9fafb;
+      }
+
+      .label {
+        background: #374151;
+      }
+
+      .footer {
+        background: #111827;
+        color: #9ca3af;
+      }
+
+      .alert-box {
+        background: #3f1d1d;
+        color: #fecaca;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="${status === "success" ? "header-success" : "header-failed"}">
+      <div class="header-title">
+        ${
+          status === "success"
+            ? "Mongo Backup Completed ✅"
+            : "Mongo Backup Failed ❌"
+        }
+      </div>
     </div>
 
-    <div style="padding: 30px;">
+    <div class="content">
 
-      <h2 style="color: red;">
-         Backup Failed
-      </h2>
-
-      <p>
-        Backup process failed.
-      </p>
-
-      <table style="
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-      ">
+      <table class="table">
 
         <tr>
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-          ">
-            Error
-          </td>
+          <td class="label">Database</td>
+          <td>${dbName || "N/A"}</td>
+        </tr>
 
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-            color: red;
-          ">
-            ${errorMessage}
+        ${
+          status === "success"
+            ? `
+          <tr>
+            <td class="label">Backup File</td>
+            <td>${fileName || "N/A"}</td>
+          </tr>
+
+          <tr>
+            <td class="label">File Size</td>
+            <td>${fileSize || "N/A"}</td>
+          </tr>
+          `
+            : `
+          <tr>
+            <td class="label">Error</td>
+            <td class="failed">${errorMessage || "Unknown Error"}</td>
+          </tr>
+          `
+        }
+
+        <tr>
+          <td class="label">Status</td>
+          <td class="${status === "success" ? "success" : "failed"}">
+            ${status === "success" ? "Success" : "Failed"}
           </td>
         </tr>
 
         <tr>
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-          ">
-            Time
-          </td>
-
-          <td style="
-            padding: 10px;
-            border: 1px solid #ddd;
-          ">
-            ${new Date().toLocaleString()}
-          </td>
+          <td class="label">Time</td>
+          <td>${new Date().toLocaleString()}</td>
         </tr>
 
       </table>
 
+      ${
+        status !== "success"
+          ? `
+        <div class="alert-box">
+          Immediate attention required.<br />
+          Retry system has been triggered.
+        </div>
+        `
+          : ""
+      }
+
+    </div>
+
+    <div class="footer">
+      Mongo Backup Monitoring System
     </div>
 
   </div>
 
-</div>
+</body>
+</html>
 `;
-    }
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,

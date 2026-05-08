@@ -31,7 +31,7 @@ const deleteOldBackups = async (retentionDays) => {
 
     const days = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
 
-    if (days > retentionDays) {
+    if (days > Number(retentionDays)) {
       fs.unlinkSync(filePath);
 
       console.log(`Deleted Old Backup: ${file}`);
@@ -39,7 +39,8 @@ const deleteOldBackups = async (retentionDays) => {
   });
 };
 
-export const createMongoBackup = async () => {
+// backupType: "auto" | "manual"
+export const createMongoBackup = async (backupType = "auto") => {
   return new Promise(async (resolve, reject) => {
     try {
       let settings = await Settings.findOne();
@@ -47,212 +48,200 @@ export const createMongoBackup = async () => {
       if (!settings) {
         settings = await Settings.create({});
       }
+
       const date = new Date().toISOString().replace(/:/g, "-");
-
       const dumpPath = path.join(LOCAL_BACKUP_PATH, date);
-
       const localZipPath = path.join(LOCAL_BACKUP_PATH, `${date}.zip`);
-
       const oneDriveZipPath = path.join(ONEDRIVE_BACKUP_PATH, `${date}.zip`);
 
       if (!fs.existsSync(LOCAL_BACKUP_PATH)) {
-        fs.mkdirSync(LOCAL_BACKUP_PATH, {
-          recursive: true,
-        });
+        fs.mkdirSync(LOCAL_BACKUP_PATH, { recursive: true });
       }
 
       if (!fs.existsSync(ONEDRIVE_BACKUP_PATH)) {
-        fs.mkdirSync(ONEDRIVE_BACKUP_PATH, {
-          recursive: true,
-        });
+        fs.mkdirSync(ONEDRIVE_BACKUP_PATH, { recursive: true });
       }
 
+      // Check if DB exists before dumping
       console.log("Checking if Database Exists...");
-
       try {
         const adminDb = mongoose.connection.db.admin();
         const { databases } = await adminDb.listDatabases();
         const dbNames = databases.map((d) => d.name);
 
-        console.log("Available DBs:", dbNames);
-        console.log("Configured DB_NAME:", DB_NAME);
-
         if (!dbNames.includes(DB_NAME)) {
           const errorMessage = `Database "${DB_NAME}" not found in MongoDB`;
           console.log("X " + errorMessage);
 
-          await Log.create({ status: "failed", message: errorMessage });
+          await Log.create({
+            status: "failed",
+            message: errorMessage,
+            backupType,
+          });
 
           if (settings.emailNotification) {
-            await sendBackupMail({ status: "failed", errorMessage });
+            await sendBackupMail({
+              status: "failed",
+              dbName: DB_NAME,
+              errorMessage,
+            });
           }
           if (settings.whatsappNotification) {
-            await sendWhatsAppMessage({ status: "failed", errorMessage });
+            await sendWhatsAppMessage({
+              status: "failed",
+              dbName: DB_NAME,
+              errorMessage,
+            });
           }
 
           return reject(new Error(errorMessage));
         }
 
-        console.log("DB found. Proceeding with dump...");
+        console.log(`DB "${DB_NAME}" found. Proceeding with dump...`);
       } catch (dbCheckError) {
         console.log("DB existence check failed:", dbCheckError.message);
         return reject(dbCheckError);
       }
 
-      const runDump = () => {
-        console.log("Starting Mongo Dump...");
+      // Run mongodump
+      console.log("Starting Mongo Dump...");
 
-        exec(
-          `mongodump --db=${DB_NAME} --excludeCollection=logs --excludeCollection=settings --out="${dumpPath}"`,
-          async (error) => {
-            if (error) {
-              console.log(error);
+      exec(`mongodump --db=${DB_NAME} --out="${dumpPath}"`, async (error) => {
+        if (error) {
+          console.log("Mongo Dump Error:", error.message);
+          return reject(error);
+        }
 
-              return reject(error);
-            }
+        console.log("Mongo Dump Completed");
 
-            console.log("Mongo Dump Completed");
+        const dbDumpPath = path.join(dumpPath, DB_NAME);
 
-            console.log("dumpPath:", dumpPath);
-            console.log("DB_NAME:", DB_NAME);
-            console.log("dumpPath exists:", fs.existsSync(dumpPath));
-            if (fs.existsSync(dumpPath)) {
-              console.log("dumpPath contents:", fs.readdirSync(dumpPath));
-            }
+        // Check DB folder exists after dump
+        if (!fs.existsSync(dbDumpPath)) {
+          const errorMessage = `Dump folder not found after backup — DB may be empty`;
 
-            const dbDumpPath = path.join(dumpPath, DB_NAME);
-            console.log("dbDumpPath:", dbDumpPath);
-            console.log("dbDumpPath exists:", fs.existsSync(dbDumpPath));
-            if (fs.existsSync(dbDumpPath)) {
-              console.log("dbDumpPath contents:", fs.readdirSync(dbDumpPath));
-            }
+          fs.rmSync(dumpPath, { recursive: true, force: true });
 
-            // Check DB Folder Exists
+          await Log.create({
+            status: "failed",
+            message: errorMessage,
+            backupType,
+          });
 
-            if (!fs.existsSync(dbDumpPath)) {
-              const errorMessage = `Database "${DB_NAME}" folder not found after dump — DB may not exist`;
-
-              fs.rmSync(dumpPath, {
-                recursive: true,
-                force: true,
-              });
-
-              await Log.create({
-                status: "failed",
-                message: errorMessage,
-              });
-
-              if (settings.emailNotification) {
-                await sendBackupMail({ status: "failed", errorMessage });
-              }
-              if (settings.whatsappNotification) {
-                await sendWhatsAppMessage({ status: "failed", errorMessage });
-              }
-
-              return reject(new Error(errorMessage));
-            }
-
-            const files = fs.readdirSync(dbDumpPath);
-
-            const bsonFiles = files.filter((file) => file.endsWith(".bson"));
-
-            if (bsonFiles.length === 0) {
-              const errorMessage = `Database "${DB_NAME}" has no collections — wrong DB name or empty DB`;
-
-              fs.rmSync(dumpPath, {
-                recursive: true,
-                force: true,
-              });
-
-              await Log.create({
-                status: "failed",
-                message: errorMessage,
-              });
-
-              if (settings.emailNotification) {
-                await sendBackupMail({ status: "failed", errorMessage });
-              }
-              if (settings.whatsappNotification) {
-                await sendWhatsAppMessage({ status: "failed", errorMessage });
-              }
-
-              return reject(new Error(errorMessage));
-            }
-
-            const output = fs.createWriteStream(localZipPath);
-
-            const archive = archiver("zip", {
-              zlib: { level: 9 },
+          if (settings.emailNotification) {
+            await sendBackupMail({
+              status: "failed",
+              dbName: DB_NAME,
+              errorMessage,
             });
-
-            archive.on("error", (err) => {
-              if (fs.existsSync(localZipPath)) {
-                fs.rmSync(localZipPath, {
-                  force: true,
-                });
-              }
-
-              reject(err);
+          }
+          if (settings.whatsappNotification) {
+            await sendWhatsAppMessage({
+              status: "failed",
+              dbName: DB_NAME,
+              errorMessage,
             });
+          }
 
-            output.on("close", async () => {
-              console.log("ZIP Created Successfully");
+          return reject(new Error(errorMessage));
+        }
 
-              // DELETE TEMP DUMP FOLDER
+        // Check BSON files exist (means collections exist)
+        const files = fs.readdirSync(dbDumpPath);
+        const bsonFiles = files.filter((file) => file.endsWith(".bson"));
 
-              fs.rmSync(dumpPath, {
-                recursive: true,
-                force: true,
-              });
+        if (bsonFiles.length === 0) {
+          const errorMessage = `Database "${DB_NAME}" has no collections — empty DB`;
 
-              await deleteOldBackups(settings.retentionDays);
+          fs.rmSync(dumpPath, { recursive: true, force: true });
 
-              try {
-                fs.copyFileSync(localZipPath, oneDriveZipPath);
+          await Log.create({
+            status: "failed",
+            message: errorMessage,
+            backupType,
+          });
 
-                console.log("Copied to OneDrive");
-              } catch (error) {
-                console.log("OneDrive Copy Failed:", error.message);
-              }
-
-              if (settings.emailNotification) {
-                await sendBackupMail({
-                  status: "success",
-                  fileName: `${date}.zip`,
-                });
-              }
-
-              if (settings.whatsappNotification) {
-                await sendWhatsAppMessage({
-                  status: "success",
-                  fileName: `${date}.zip`,
-                });
-              }
-
-              await Log.create({
-                fileName: `${date}.zip`,
-                status: "success",
-                message: "Backup Created Successfully and Synced",
-              });
-
-              resolve({
-                success: true,
-                file: `${date}.zip`,
-              });
+          if (settings.emailNotification) {
+            await sendBackupMail({
+              status: "failed",
+              dbName: DB_NAME,
+              errorMessage,
             });
+          }
+          if (settings.whatsappNotification) {
+            await sendWhatsAppMessage({
+              status: "failed",
+              dbName: DB_NAME,
+              errorMessage,
+            });
+          }
 
-            archive.pipe(output);
+          return reject(new Error(errorMessage));
+        }
 
-            // ZIP THE ENTIRE DUMP FOLDER
+        // Create ZIP
+        const output = fs.createWriteStream(localZipPath);
+        const archive = archiver("zip", { zlib: { level: 9 } });
 
-            archive.directory(dumpPath, false);
+        archive.on("error", (err) => {
+          if (fs.existsSync(localZipPath)) {
+            fs.rmSync(localZipPath, { force: true });
+          }
+          reject(err);
+        });
 
-            archive.finalize();
-          },
-        );
-      };
+        output.on("close", async () => {
+          console.log("ZIP Created Successfully");
 
-      runDump();
+          // Cleanup temp dump folder
+          fs.rmSync(dumpPath, { recursive: true, force: true });
+
+          await deleteOldBackups(settings.retentionDays);
+
+          // Copy to OneDrive
+          try {
+            fs.copyFileSync(localZipPath, oneDriveZipPath);
+            console.log("Copied to OneDrive");
+          } catch (err) {
+            console.log("OneDrive Copy Failed:", err.message);
+          }
+
+          // Get file size
+          const fileSizeBytes = fs.statSync(localZipPath).size;
+          const fileSize = (fileSizeBytes / 1024 / 1024).toFixed(2) + " MB";
+
+          // Notifications
+          if (settings.emailNotification) {
+            await sendBackupMail({
+              status: "success",
+              fileName: `${date}.zip`,
+              fileSize,
+              dbName: DB_NAME,
+            });
+          }
+          if (settings.whatsappNotification) {
+            await sendWhatsAppMessage({
+              status: "success",
+              fileName: `${date}.zip`,
+              fileSize,
+              dbName: DB_NAME,
+            });
+          }
+
+          await Log.create({
+            fileName: `${date}.zip`,
+            status: "success",
+            message: "Backup Created Successfully and Synced",
+            backupType,
+          });
+
+          resolve({ success: true, file: `${date}.zip` });
+        });
+
+        archive.pipe(output);
+        archive.directory(dumpPath, false);
+        archive.finalize();
+      });
     } catch (error) {
       reject(error);
     }

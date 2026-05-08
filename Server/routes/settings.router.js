@@ -5,7 +5,6 @@ import { startBackupCron } from "../cron/cronManager.js";
 const router = express.Router();
 
 // GET SETTINGS
-
 router.get("/", async (req, res) => {
   try {
     let settings = await Settings.findOne();
@@ -27,7 +26,6 @@ router.get("/", async (req, res) => {
 });
 
 // UPDATE SETTINGS
-
 router.put("/", async (req, res) => {
   try {
     let settings = await Settings.findOne();

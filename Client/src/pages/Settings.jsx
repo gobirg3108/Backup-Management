@@ -36,14 +36,7 @@ function Settings() {
 
   const convertToCron = (value) => {
     const [hour, minute] = value.split(":");
-
-    return `
-${parseInt(minute)}
-${parseInt(hour)}
-* * *
-`
-      .replace(/\n/g, " ")
-      .trim();
+    return `${parseInt(minute)} ${parseInt(hour)} * * *`;
   };
   // Save Settings
 
@@ -127,7 +120,7 @@ ${parseInt(hour)}
               disableClock={true}
               clearIcon={null}
               clockIcon={null}
-              format="hh:mm a"
+              format="HH:mm"
               className="custom-time-picker"
             />
           </div>
@@ -152,7 +145,7 @@ ${parseInt(hour)}
             onChange={(e) =>
               setSettings({
                 ...settings,
-                retentionDays: e.target.value,
+                retentionDays: Number(e.target.value),
               })
             }
             className="
