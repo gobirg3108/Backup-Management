@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@import "react-time-picker/dist/TimePicker.css";
+@import "react-clock/dist/Clock.css";
+
+.custom-time-picker {
+  width: 100%;
+}
+
+.custom-time-picker .react-time-picker__wrapper {
+  border: none;
+}
+
+.custom-time-picker input {
+  font-size: 18px;
+  font-weight: 500;
+  outline: none;
+  background: transparent;
+}
+
+.custom-time-picker select {
+  border: none;
+  outline: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.custom-time-picker button {
+  display: none;
+}
+
+.primary-btn {
+  background: black;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.primary-btn:hover {
+  background: #1f1f1f;
+  transform: translateY(-2px);
+}
+
+.primary-btn:active {
+  transform: scale(0.97);
+}
+
+.primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-btn {
+  padding: 10px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  transform: scale(1.08);
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
