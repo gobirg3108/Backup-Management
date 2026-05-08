@@ -84,8 +84,27 @@ function Dashboard({ backupRunning }) {
     }
   };
 
-  const downloadBackup = (fileName) => {
-    window.open(`${API_URL}/backup/download/${fileName}`);
+  const downloadBackup = async (fileName) => {
+    try {
+      toast.loading("Preparing download...", { id: "download" });
+
+      const response = await api.get(`/backup/download/${fileName}`, {
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Download started!", { id: "download" });
+    } catch (error) {
+      toast.error("Download failed", { id: "download" });
+    }
   };
 
   return (
