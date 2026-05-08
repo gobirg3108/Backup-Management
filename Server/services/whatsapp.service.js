@@ -1,4 +1,7 @@
 import twilio from "twilio";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
@@ -16,43 +19,21 @@ export const sendWhatsAppMessage = async ({
     let body = "";
 
     if (status === "success") {
-      body = `✅ *Mongo DB Backup Success*
-
-📊 Database : ${dbName}
-
-📁 File : ${fileName}
-
-📦 File Size : ${fileSize}
-
-📅 Date & Time : ${new Date().toLocaleString()}
-
-☁ Local + OneDrive Sync Completed
-
-🚀 Mongo Backup Monitoring System`;
+      body = `✅ *Mongo DB Backup Success*\n\n📊 Database : ${dbName}\n\n📁 File : ${fileName}\n\n📦 File Size : ${fileSize}\n\n📅 Date & Time : ${new Date().toLocaleString()}\n\n☁ Local + OneDrive Sync Completed\n\n🚀 Mongo Backup Monitoring System`;
     } else {
-      body = `❌ *Mongo DB Backup Failed*
-
-📊 Database : ${dbName}
-
-🚫 Error : ${errorMessage}
-
-📅 Date & Time : ${new Date().toLocaleString()}
-
-🔄 Retry System Triggered
-
-🚨 Immediate Attention Required`;
+      body = `❌ *Mongo DB Backup Failed*\n\n📊 Database : ${dbName}\n\n🚫 Error : ${errorMessage}\n\n📅 Date & Time : ${new Date().toLocaleString()}\n\n🔄 Retry System Triggered\n\n🚨 Immediate Attention Required`;
     }
 
     await client.messages.create({
       body,
-
       from: process.env.TWILIO_WHATSAPP_FROM,
-
       to: process.env.TWILIO_WHATSAPP_TO,
     });
 
     console.log("WhatsApp Message Sent");
+    return true;
   } catch (error) {
     console.log("WhatsApp Error:", error.message);
+    return false;
   }
 };

@@ -5,13 +5,11 @@ import mongoose from "mongoose";
 import { startBackupCron } from "./cron/cronManager.js";
 import settingsRouter from "./routes/settings.router.js";
 import logRouter from "./routes/log.router.js";
-
-// Routes
 import backupRouter from "./routes/backup.router.js";
 
 dotenv.config();
 
-const { PORT, MONGO_URI, BACKUP_DB_NAME ,PROJECT_DB} = process.env;
+const { PORT, MONGO_URI, PROJECT_DB } = process.env;
 
 const app = express();
 
@@ -26,7 +24,6 @@ mongoose
   .connect(`${MONGO_URI}${PROJECT_DB}`)
   .then(() => {
     console.log("MongoDB Connected 👌");
-
     startBackupCron();
   })
   .catch((err) => {

@@ -1,139 +1,123 @@
 import { useState } from "react";
-
 import toast from "react-hot-toast";
-
 import api from "../services/api";
+import { useSSE } from "../hooks/useSSE";
+import ProgressBar from "../components/ProgressBar";
 
-function Restore() {
+function Restore({ backupRunning }) {
   const [file, setFile] = useState(null);
+  const [restoring, setRestoring] = useState(false);
+  const [progress, setProgress] = useState(null);
 
-  const [loading, setLoading] = useState(false);
+  useSSE({
+    restore_start: (data) => {
+      setRestoring(true);
+      setProgress({
+        percent: data.percent,
+        message: data.message,
+        status: "running",
+      });
+    },
+    restore_progress: (data) => {
+      setProgress({
+        percent: data.percent,
+        message: data.message,
+        status: "running",
+      });
+    },
+    restore_done: (data) => {
+      setRestoring(false);
+      setFile(null);
+      setProgress({ percent: 100, message: data.message, status: "done" });
+      setTimeout(() => setProgress(null), 4000);
+    },
+    restore_error: (data) => {
+      setRestoring(false);
+      setProgress({ percent: 100, message: data.message, status: "error" });
+      setTimeout(() => setProgress(null), 5000);
+    },
+  });
 
-  // Restore Backup
   const handleRestore = async () => {
-    if (!file) {
-      return toast.error("Select Backup File");
+    if (!file) return toast.error("Select a backup ZIP file");
+
+    if (backupRunning) {
+      return toast.error("A backup is running. Please wait before restoring.");
     }
 
     try {
-      setLoading(true);
-
-      toast.loading("Restoring Backup...", {
-        id: "restore",
-      });
-
       const formData = new FormData();
-
       formData.append("backup", file);
-
+      // Server responds immediately, progress comes via SSE
       await api.post("/backup/restore", formData);
-
-      toast.success("Database Restored Successfully", {
-        id: "restore",
-      });
-
-      setFile(null);
     } catch (error) {
-      console.log(error);
-
-      toast.error("Restore Failed", {
-        id: "restore",
-      });
-    } finally {
-      setLoading(false);
+      const msg = error?.response?.data?.message || "Restore Failed";
+      toast.error(msg);
+      setRestoring(false);
     }
   };
 
   return (
     <div>
-      {/* Header */}
-
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Restore Backup</h1>
-
-        <p className="text-gray-500">Upload ZIP backup file</p>
+        <p className="text-gray-500">
+          Upload a ZIP backup file to restore your database
+        </p>
       </div>
 
-      {/* Card */}
-
-      <div
-        className="
-        bg-white
-        p-8
-        rounded-2xl
-        shadow-sm
-        max-w-xl
-      "
-      >
+      <div className="bg-white p-8 rounded-2xl shadow-sm max-w-xl">
+        {/* Upload area */}
         <label
-          className="
-    flex
-    items-center
-    justify-center
-    w-full
-    border-2
-    border-dashed
-    border-gray-300
-    rounded-2xl
-    p-8
-    cursor-pointer
-    hover:border-black
-    hover:bg-gray-50
-    transition
-  "
+          className={`flex items-center justify-center w-full border-2 border-dashed rounded-2xl p-8 transition ${
+            restoring
+              ? "border-gray-200 bg-gray-50 cursor-not-allowed"
+              : "border-gray-300 cursor-pointer hover:border-black hover:bg-gray-50"
+          }`}
         >
           <input
             type="file"
             accept=".zip"
             hidden
+            disabled={restoring}
             onChange={(e) => setFile(e.target.files[0])}
           />
-
           <div className="text-center">
-            <p
-              className="
-      text-lg
-      font-medium
-    "
-            >
-              Click to Upload ZIP
-            </p>
-
-            <p
-              className="
-      text-sm
-      text-gray-500
-      mt-2
-    "
-            >
-              Restore MongoDB Backup
-            </p>
+            <p className="text-lg font-medium">Click to Upload ZIP</p>
+            <p className="text-sm text-gray-500 mt-2">Restore MongoDB Backup</p>
           </div>
         </label>
 
         {file && (
-          <p
-            className="
-            mt-4
-            text-sm
-            text-gray-600
-          "
-          >
-            Selected: {file.name}
+          <p className="mt-4 text-sm text-gray-600">
+            Selected: <span className="font-medium">{file.name}</span>
           </p>
+        )}
+
+        {/* Progress bar */}
+        {progress && (
+          <div className="mt-5">
+            <ProgressBar
+              percent={progress.percent}
+              message={progress.message}
+              status={progress.status}
+            />
+          </div>
         )}
 
         <button
           onClick={handleRestore}
-          disabled={loading}
-          className="
-    primary-btn
-    mt-6
-    disabled:opacity-50
-  "
+          disabled={restoring || backupRunning}
+          className="primary-btn mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Restoring..." : "Restore Backup"}
+          {restoring ? "Restoring..." : "Restore Backup"}
         </button>
+
+        {backupRunning && !restoring && (
+          <p className="mt-3 text-sm text-orange-500">
+            ⚠️ A backup is currently running. Restore is disabled.
+          </p>
+        )}
       </div>
     </div>
   );
