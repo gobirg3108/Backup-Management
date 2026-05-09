@@ -59,17 +59,17 @@ function Restore({ backupRunning }) {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Restore Backup</h1>
-        <p className="text-gray-500">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold">Restore Backup</h1>
+        <p className="text-gray-500 text-sm sm:text-base">
           Upload a ZIP backup file to restore your database
         </p>
       </div>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm max-w-xl">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl shadow-sm w-full max-w-xl">
         {/* Upload area */}
         <label
-          className={`flex items-center justify-center w-full border-2 border-dashed rounded-2xl p-8 transition ${
+          className={`flex items-center justify-center w-full border-2 border-dashed rounded-2xl p-6 sm:p-8 transition ${
             restoring
               ? "border-gray-200 bg-gray-50 cursor-not-allowed"
               : "border-gray-300 cursor-pointer hover:border-black hover:bg-gray-50"
@@ -83,14 +83,16 @@ function Restore({ backupRunning }) {
             onChange={(e) => setFile(e.target.files[0])}
           />
           <div className="text-center">
-            <p className="text-lg font-medium">Click to Upload ZIP</p>
+            <p className="text-base sm:text-lg font-medium">
+              Click to Upload ZIP
+            </p>
             <p className="text-sm text-gray-500 mt-2">Restore MongoDB Backup</p>
           </div>
         </label>
 
         {file && (
           <p className="mt-4 text-sm text-gray-600">
-            Selected: <span className="font-medium">{file.name}</span>
+            Selected: <span className="font-medium break-all">{file.name}</span>
           </p>
         )}
 
@@ -108,7 +110,7 @@ function Restore({ backupRunning }) {
         <button
           onClick={handleRestore}
           disabled={restoring || backupRunning}
-          className="primary-btn mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="primary-btn mt-6 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
         >
           {restoring ? "Restoring..." : "Restore Backup"}
         </button>

@@ -58,9 +58,9 @@ function Settings() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8">Settings</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Settings</h1>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm max-w-2xl space-y-6">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl shadow-sm w-full max-w-2xl space-y-6">
         {/* Backup Time */}
         <div>
           <label className="block mb-2 font-medium">Backup Cron Time</label>
@@ -107,8 +107,11 @@ function Settings() {
             onChange={(e) =>
               setSettings({ ...settings, emailNotification: e.target.checked })
             }
+            className="w-4 h-4 accent-black cursor-pointer"
           />
-          <label htmlFor="emailNotif">Email Notifications</label>
+          <label htmlFor="emailNotif" className="cursor-pointer select-none">
+            Email Notifications
+          </label>
         </div>
 
         {/* WhatsApp Notification */}
@@ -123,11 +126,14 @@ function Settings() {
                 whatsappNotification: e.target.checked,
               })
             }
+            className="w-4 h-4 accent-black cursor-pointer"
           />
-          <label htmlFor="waNotif">WhatsApp Notifications</label>
+          <label htmlFor="waNotif" className="cursor-pointer select-none">
+            WhatsApp Notifications
+          </label>
         </div>
 
-        <button onClick={saveSettings} className="primary-btn">
+        <button onClick={saveSettings} className="primary-btn w-full sm:w-auto">
           Save Settings
         </button>
       </div>

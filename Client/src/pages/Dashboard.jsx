@@ -110,15 +110,17 @@ function Dashboard({ backupRunning }) {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-gray-500">Mongo Backup Monitoring</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+          <p className="text-gray-500 text-sm sm:text-base">
+            Mongo Backup Monitoring
+          </p>
         </div>
         <button
           onClick={createBackup}
           disabled={backupRunning}
-          className="primary-btn disabled:opacity-50 disabled:cursor-not-allowed"
+          className="primary-btn disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto text-center"
         >
           {backupRunning ? "Backup Running..." : "Create Backup"}
         </button>
@@ -145,7 +147,7 @@ function Dashboard({ backupRunning }) {
       {/* Auto Backup */}
       {backupRunning && !progress && (
         <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3">
-          <span className="relative flex h-3 w-3">
+          <span className="relative flex h-3 w-3 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
           </span>
@@ -156,57 +158,103 @@ function Dashboard({ backupRunning }) {
       )}
 
       {/* Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white p-5 rounded-2xl shadow-sm">
-          <h2 className="text-gray-500">Total Backups</h2>
-          <p className="text-3xl font-bold mt-3">{backups.length}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm">
+          <h2 className="text-gray-500 text-sm sm:text-base">Total Backups</h2>
+          <p className="text-2xl sm:text-3xl font-bold mt-2 sm:mt-3">
+            {backups.length}
+          </p>
         </div>
       </div>
 
       {/* Backup Table */}
-      <div className="mt-10 bg-white rounded-2xl shadow-sm p-5">
-        <h2 className="text-xl font-bold mb-5">Recent Backups</h2>
+      <div className="mt-8 sm:mt-10 bg-white rounded-2xl shadow-sm p-4 sm:p-5">
+        <h2 className="text-xl font-bold mb-4 sm:mb-5">Recent Backups</h2>
 
         {loading ? (
           <p className="text-center text-gray-400 py-10">Loading...</p>
         ) : backups.length === 0 ? (
           <p className="text-center text-gray-400 py-10">No backups yet</p>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="text-left border-b">
-                <th className="pb-3">File Name</th>
-                <th className="pb-3">Size</th>
-                <th className="pb-3">Date & Time</th>
-                <th className="pb-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full min-w-[500px]">
+                <thead>
+                  <tr className="text-left border-b">
+                    <th className="pb-3">File Name</th>
+                    <th className="pb-3">Size</th>
+                    <th className="pb-3">Date & Time</th>
+                    <th className="pb-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {backups.map((backup, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="py-4 pr-4 break-all text-sm">
+                        {backup.fileName}
+                      </td>
+                      <td className="pr-4 text-sm whitespace-nowrap">
+                        {backup.size}
+                      </td>
+                      <td className="pr-4 text-sm whitespace-nowrap">
+                        {new Date(backup.createdAt).toLocaleString()}
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => downloadBackup(backup.fileName)}
+                            className="icon-btn bg-blue-100"
+                          >
+                            <Download size={18} />
+                          </button>
+                          <button
+                            onClick={() => deleteBackup(backup.fileName)}
+                            className="icon-btn bg-red-100"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="sm:hidden space-y-3">
               {backups.map((backup, index) => (
-                <tr key={index} className="border-b">
-                  <td className="py-4">{backup.fileName}</td>
-                  <td>{backup.size}</td>
-                  <td>{new Date(backup.createdAt).toLocaleString()}</td>
-                  <td>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => downloadBackup(backup.fileName)}
-                        className="icon-btn bg-blue-100"
-                      >
-                        <Download size={18} />
-                      </button>
-                      <button
-                        onClick={() => deleteBackup(backup.fileName)}
-                        className="icon-btn bg-red-100"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <div key={index} className="border rounded-xl p-4">
+                  <p className="font-medium text-sm break-all mb-2">
+                    {backup.fileName}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{backup.size}</span>
+                    <span>
+                      {new Date(backup.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-3">
+                    <button
+                      onClick={() => downloadBackup(backup.fileName)}
+                      className="icon-btn bg-blue-100 flex items-center gap-1.5 text-xs px-3"
+                    >
+                      <Download size={15} />
+                      <span>Download</span>
+                    </button>
+                    <button
+                      onClick={() => deleteBackup(backup.fileName)}
+                      className="icon-btn bg-red-100 flex items-center gap-1.5 text-xs px-3"
+                    >
+                      <Trash2 size={15} />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
     </div>
